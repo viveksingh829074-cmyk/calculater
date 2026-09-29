@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<!-- saved from url=(0048)file:///E:/ludo,snake/calculater/calculater.html -->
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Calculator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #0f172a;
+            color: #ffffff;
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 380px;
+            background: #1e293b;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .display {
+            background: #0f172a;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: right;
+            margin-bottom: 16px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            word-break: break-all;
+        }
+
+        .previous-operand {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            min-height: 1.5rem;
+        }
+
+        .current-operand {
+            color: #ffffff;
+            font-size: 2.2rem;
+            font-weight: 600;
+        }
+
+        /* Scientific Panel Styling */
+        .scientific-panel {
+            display: none;
+            /* Default hidden */
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .scientific-panel.active {
+            display: grid;
+            /* Open on click */
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .btn {
+            border: none;
+            background: #334155;
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 500;
+            padding: 16px 10px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            user-select: none;
+        }
+
+        .btn:hover {
+            background: #475569;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-sci {
+            background: #8b5cf6;
+            font-size: 0.95rem;
+        }
+
+        .btn-sci:hover {
+            background: #7c3aed;
+        }
+
+        .btn-toggle {
+            background: #6366f1;
+        }
+
+        .btn-toggle:hover {
+            background: #4f46e5;
+        }
+
+        .btn-action {
+            background: #ef4444;
+        }
+
+        .btn-action:hover {
+            background: #dc2626;
+        }
+
+        .btn-operator {
+            background: #3b82f6;
+        }
+
+        .btn-operator:hover {
+            background: #2563eb;
+        }
+
+        .btn-equals {
+            grid-column: span 2;
+            background: #10b981;
+        }
+
+        .btn-equals:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="calculator">
+        <div class="display">
+            <div id="previous-operand" class="previous-operand"></div>
+            <div id="current-operand" class="current-operand">0</div>
+        </div>
+
+        <!-- Extra Symbols / Scientific Panel -->
+        <div id="scientific-panel" class="scientific-panel">
+            <button class="btn btn-sci" onclick="applyFunc('sin')">sin</button>
+            <button class="btn btn-sci" onclick="applyFunc('cos')">cos</button>
+            <button class="btn btn-sci" onclick="applyFunc('tan')">tan</button>
+            <button class="btn btn-sci" onclick="applyFunc('log')">log</button>
+            <button class="btn btn-sci" onclick="applyFunc('sqrt')">√</button>
+            <button class="btn btn-sci" onclick="applyFunc('sqr')">x²</button>
+            <button class="btn btn-sci" onclick="appendNumber('3.14159')">π</button>
+            <button class="btn btn-sci" onclick="appendOperator('^')">xʸ</button>
+        </div>
+
+        <!-- Main Buttons Panel -->
+        <div class="buttons">
+            <button class="btn btn-toggle" onclick="toggleScientific()">SCI</button>
+            <button class="btn btn-action" onclick="clearDisplay()">C</button>
+            <button class="btn btn-action" onclick="deleteNumber()">DEL</button>
+            <button class="btn btn-operator" onclick="appendOperator('/')">÷</button>
+
+            <button class="btn" onclick="appendNumber('7')">7</button>
+            <button class="btn" onclick="appendNumber('8')">8</button>
+            <button class="btn" onclick="appendNumber('9')">9</button>
+            <button class="btn btn-operator" onclick="appendOperator('*')">×</button>
+
+            <button class="btn" onclick="appendNumber('4')">4</button>
+            <button class="btn" onclick="appendNumber('5')">5</button>
+            <button class="btn" onclick="appendNumber('6')">6</button>
+            <button class="btn btn-operator" onclick="appendOperator('-')">−</button>
+
+            <button class="btn" onclick="appendNumber('1')">1</button>
+            <button class="btn" onclick="appendNumber('2')">2</button>
+            <button class="btn" onclick="appendNumber('3')">3</button>
+            <button class="btn btn-operator" onclick="appendOperator('+')">+</button>
+
+            <button class="btn" onclick="appendNumber('0')">0</button>
+            <button class="btn" onclick="appendNumber('.')">.</button>
+            <button class="btn btn-equals" onclick="compute()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let currentOperand = '0';
+        let previousOperand = '';
+        let operation = null;
+
+        const currentDisplay = document.getElementById('current-operand');
+        const previousDisplay = document.getElementById('previous-operand');
+        const sciPanel = document.getElementById('scientific-panel');
+
+        // SCI button click se panel open/close hoga
+        function toggleScientific() {
+            sciPanel.classList.toggle('active');
+        }
+
+        function updateDisplay() {
+            currentDisplay.innerText = currentOperand;
+            if (operation != null) {
+                previousDisplay.innerText = `${previousOperand} ${operation}`;
+            } else {
+                previousDisplay.innerText = '';
+            }
+        }
+
+        function clearDisplay() {
+            currentOperand = '0';
+            previousOperand = '';
+            operation = null;
+            updateDisplay();
+        }
+
+        function deleteNumber() {
+            if (currentOperand === '0') return;
+            if (currentOperand.length === 1) {
+                currentOperand = '0';
+            } else {
+                currentOperand = currentOperand.slice(0, -1);
+            }
+            updateDisplay();
+        }
+
+        function appendNumber(number) {
+            if (number === '.' && currentOperand.includes('.')) return;
+            if (currentOperand === '0' && number !== '.') {
+                currentOperand = number.toString();
+            } else {
+                currentOperand += number.toString();
+            }
+            updateDisplay();
+        }
+
+        function appendOperator(op) {
+            if (currentOperand === 'Error') return;
+            if (previousOperand !== '') {
+                compute();
+            }
+            operation = op;
+            previousOperand = currentOperand;
+            currentOperand = '0';
+            updateDisplay();
+        }
+
+        // Special Scientific Functions (sin, cos, tan, sqrt, log)
+        function applyFunc(funcName) {
+            const val = parseFloat(currentOperand);
+            if (isNaN(val)) return;
+
+            let res;
+            switch (funcName) {
+                case 'sin':
+                    res = Math.sin((val * Math.PI) / 180); // Degree input
+                    break;
+                case 'cos':
+                    res = Math.cos((val * Math.PI) / 180);
+                    break;
+                case 'tan':
+                    res = Math.tan((val * Math.PI) / 180);
+                    break;
+                case 'log':
+                    res = Math.log10(val);
+                    break;
+                case 'sqrt':
+                    res = Math.sqrt(val);
+                    break;
+                case 'sqr':
+                    res = Math.pow(val, 2);
+                    break;
+            }
+
+            currentOperand = parseFloat(res.toFixed(8)).toString();
+            updateDisplay();
+        }
+
+        function compute() {
+            let computation;
+            const prev = parseFloat(previousOperand);
+            const current = parseFloat(currentOperand);
+
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operation) {
+                case '+':
+                    computation = prev + current;
+                    break;
+                case '-':
+                    computation = prev - current;
+                    break;
+                case '*':
+                    computation = prev * current;
+                    break;
+                case '/':
+                    if (current === 0) {
+                        currentOperand = 'Error';
+                        previousOperand = '';
+                        operation = null;
+                        updateDisplay();
+                        return;
+                    }
+                    computation = prev / current;
+                    break;
+                case '^':
+                    computation = Math.pow(prev, current);
+                    break;
+                default:
+                    return;
+            }
+
+            currentOperand = parseFloat(computation.toFixed(8)).toString();
+            operation = null;
+            previousOperand = '';
+            updateDisplay();
+        }
+
+        // Keyboard navigation
+        window.addEventListener('keydown', (e) => {
+            if ((e.key >= '0' && e.key <= '9') || e.key === '.') appendNumber(e.key);
+            if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') appendOperator(e.key);
+            if (e.key === 'Enter' || e.key === '=') {
+                e.preventDefault();
+                compute();
+            }
+            if (e.key === 'Backspace') deleteNumber();
+            if (e.key === 'Escape') clearDisplay();
+        });
+    </script>
+
+</body>
+
+</html>
